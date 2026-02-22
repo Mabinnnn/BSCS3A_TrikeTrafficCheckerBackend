@@ -2,19 +2,21 @@ const express = require("express");
 const router = express.Router();
 const Route = require("../models/Route");
 
-const defaultRoutes = require("../data/defaultRoutes");
-const { getAllPlaces, data: fareData } = require("../data/places");
 
-
-// GET all places
-router.get("/places", (req, res) => {
-  const places = getAllPlaces();
-  res.json({ status: "success", places });
+// GET all places from MongoDB Atlas
+router.get("/places", async (req, res) => {
+  try {
+    const places = await Route.find({});
+    res.json({ status: "success", places });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Failed to fetch places from database" });
+  }
 });
 
 
-// GET fare
-router.get("/fare", (req, res) => {
+
+// GET fare from MongoDB Atlas
+router.get("/fare", async (req, res) => {
   try {
     const { origin, destination, category = "regular", gas_price } = req.query;
 
@@ -26,7 +28,8 @@ router.get("/fare", (req, res) => {
       return res.status(400).json({ status: "error", message: "Origin and destination cannot be the same" });
     }
 
-    const places = getAllPlaces();
+    // Fetch all places from MongoDB Atlas
+    const places = await Route.find({});
     const originObj = places.find(p => p.name === origin);
     const destObj = places.find(p => p.name === destination);
 
@@ -46,10 +49,10 @@ router.get("/fare", (req, res) => {
 
     let gasKey = null;
 
-    if (gas_price) {
+    // If fareObj has gasoline_price_ranges, use it
+    if (gas_price && fareObj.gasoline_price_ranges) {
       const price = parseFloat(gas_price);
-      const range = fareData.gasoline_price_ranges.find(r => price >= r.min && price <= r.max);
-
+      const range = fareObj.gasoline_price_ranges.find(r => price >= r.min && price <= r.max);
       if (range) {
         gasKey = range.range.replace(/\./g, '_');
       }
