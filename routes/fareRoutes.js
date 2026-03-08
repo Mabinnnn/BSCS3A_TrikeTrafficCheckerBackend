@@ -2,104 +2,33 @@ const express = require("express");
 const router = express.Router();
 const Route = require("../models/Route");
 
-
-// GET all places from MongoDB Atlas
-router.get("/places", async (req, res) => {
+// GET fare by route_no
+router.get("/", async (req, res) => {
   try {
-    const places = await Route.find({});
-    res.json({ status: "success", places });
-  } catch (error) {
-    res.status(500).json({ status: "error", message: "Failed to fetch places from database" });
-  }
-});
+    const { route_no } = req.query;
 
-
-
-// GET fare from MongoDB Atlas
-router.get("/fare", async (req, res) => {
-  try {
-    const { origin, destination, category = "regular", gas_price } = req.query;
-
-    if (!origin || !destination) {
-      return res.status(400).json({ status: "error", message: "Origin and destination are required" });
+    if (!route_no) {
+      return res.status(400).json({ status: "error", message: "Route number is required" });
     }
 
-    if (origin === destination) {
-      return res.status(400).json({ status: "error", message: "Origin and destination cannot be the same" });
+    const data = await Route.findOne(); // finds the first document
+
+    if (!data || !data.routes || data.routes.length === 0) {
+      return res.status(404).json({ status: "error", message: "No routes found in database" });
     }
 
-    // Fetch all places from MongoDB Atlas
-    const places = await Route.find({});
-    const originObj = places.find(p => p.name === origin);
-    const destObj = places.find(p => p.name === destination);
+    const route = data.routes.find(r => r.route_no === Number(route_no));
 
-    if (!originObj || !destObj) {
-      return res.status(404).json({ status: "error", message: "Invalid origin or destination" });
+    if (!route) {
+      return res.status(404).json({ status: "error", message: "Route not found" });
     }
 
-    let fareObj = null;
-
-    if (originObj.type === "zone" && destObj.type === "barangay") {
-      fareObj = destObj;
-    } else if (originObj.type === "barangay" && destObj.type === "zone") {
-      fareObj = originObj;
-    } else {
-      return res.status(400).json({ status: "error", message: "Only trips between base and barangay supported" });
-    }
-
-    let gasKey = null;
-
-    // If fareObj has gasoline_price_ranges, use it
-    if (gas_price && fareObj.gasoline_price_ranges) {
-      const price = parseFloat(gas_price);
-      const range = fareObj.gasoline_price_ranges.find(r => price >= r.min && price <= r.max);
-      if (range) {
-        gasKey = range.range.replace(/\./g, '_');
-      }
-    }
-
-    if (!gasKey) {
-      gasKey = Object.keys(fareObj.fares_by_gas_price)[0];
-    }
-
-    const fare = fareObj.fares_by_gas_price[gasKey]?.[category.toLowerCase()];
-
-    if (fare === undefined) {
-      return res.status(404).json({ status: "error", message: "No fare found" });
-    }
-
-    res.json({
-      status: "success",
-      origin: originObj.name,
-      destination: destObj.name,
-      fare
-    });
+    res.json({ status: "success", route });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
-
-// ✅ RESTORE DEFAULT FARE DATA
-router.post("/fare/restore", async (req, res) => {
-  try {
-    await Route.deleteMany();
-    await Route.insertMany(defaultRoutes);
-
-    res.json({
-      status: "success",
-      message: "Fare data restored to default"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to restore fare data"
-    });
-  }
-});
-
-
-// ✅ EXPORT AT VERY BOTTOM
 module.exports = router;
