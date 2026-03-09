@@ -3,5 +3,4 @@
 .env.*
 config/*.env
 node_modules
-frontend/build
 backend/node_modules
