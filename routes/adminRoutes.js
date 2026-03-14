@@ -6,6 +6,20 @@ const Route = require("../models/Route");
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "12345";
 
+// GET /api/admin/routes - Get all routes
+router.get("/routes", async (req, res) => {
+  try {
+    const data = await Route.findOne();
+    if (!data || !data.routes || data.routes.length === 0) {
+      return res.status(404).json({ status: "error", message: "No routes found" });
+    }
+    res.json({ status: "success", routes: data.routes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
 // POST /api/admin/login
 router.post("/login", (req, res) => {
   const { username, password } = req.body || {};
