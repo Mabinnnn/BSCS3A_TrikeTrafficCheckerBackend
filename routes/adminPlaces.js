@@ -140,4 +140,46 @@ router.put("/settings/active-tier", async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS — ADMIN GMAIL
+// First Gmail to sign in becomes the permanent admin
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET registered admin Gmail
+// GET /api/admin/settings/admin-gmail
+router.get("/settings/admin-gmail", async (req, res) => {
+  try {
+    const doc = await Setting.findOne({ key: "adminGmail" });
+    return res.json({
+      status:     "success",
+      adminGmail: doc ? doc.value : null,
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// POST save the first Gmail as the permanent admin
+// POST /api/admin/settings/admin-gmail
+router.post("/settings/admin-gmail", async (req, res) => {
+  try {
+    const { adminGmail } = req.body;
+
+    if (!adminGmail || typeof adminGmail !== "string") {
+      return res.status(400).json({ status: "error", message: "Invalid Gmail address." });
+    }
+
+    // Only save if no admin Gmail has been set yet (first-time only)
+    const existing = await Setting.findOne({ key: "adminGmail" });
+    if (existing) {
+      return res.status(403).json({ status: "error", message: "Admin Gmail already registered." });
+    }
+
+    await Setting.create({ key: "adminGmail", value: adminGmail.toLowerCase().trim() });
+    return res.json({ status: "success", adminGmail });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 module.exports = router;
