@@ -62,14 +62,15 @@ router.post("/places", async (req, res) => {
 
 // PUT update fares of a place by ID
 // PUT /api/admin/places/:id
-// Body: { fares: { route, route_label, distance_km, emergency_provisional_php, tiers: {...} }, distance }
+// Body: { fares: { route, route_label, distance_km, emergency_provisional_php, tiers: {...} }, distance, coords }
 router.put("/places/:id", async (req, res) => {
   try {
-    const { fares, distance } = req.body;
+    const { fares, distance, coords } = req.body;
 
     const update = {};
     if (fares    !== undefined) update.fares    = fares;
     if (distance !== undefined) update.distance = distance;
+    if (coords   !== undefined) update.coords   = coords;
 
     const updated = await Place.findByIdAndUpdate(
       req.params.id,
