@@ -4,7 +4,7 @@ const Place   = require("../models/Place");
 const Setting = require("../models/Setting");
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VALID TIER KEYS — updated to match fares.tiers keys in MongoDB
+// VALID TIER KEYS
 // ─────────────────────────────────────────────────────────────────────────────
 const VALID_TIERS = [
   "50-59",
@@ -53,33 +53,91 @@ router.get("/places", async (req, res) => {
 router.post("/places", async (req, res) => {
   try {
     const { name, coords, category, distance, fares } = req.body;
-    const place = await Place.create({ name, coords, category, distance, fares });
+
+    // ── Normalize coords to [lng, lat] array ─────────────────────────────────
+    let normalizedCoords = null;
+    if (coords !== undefined && coords !== null) {
+      if (Array.isArray(coords) && coords.length >= 2) {
+        const lng = parseFloat(coords[0]);
+        const lat = parseFloat(coords[1]);
+        if (!isNaN(lng) && !isNaN(lat)) {
+          normalizedCoords = [lng, lat];
+        }
+      } else if (coords && coords.coordinates && Array.isArray(coords.coordinates) && coords.coordinates.length >= 2) {
+        const lng = parseFloat(coords.coordinates[0]);
+        const lat = parseFloat(coords.coordinates[1]);
+        if (!isNaN(lng) && !isNaN(lat)) {
+          normalizedCoords = [lng, lat];
+        }
+      }
+    }
+
+    // Build the new document — fares is Mixed so it stores exactly what the
+    // frontend sends (including hyphenated tier keys like "50-59")
+    const doc = new Place({
+      name,
+      coords:   normalizedCoords,
+      category,
+      distance,
+      fares:    fares ?? null,
+    });
+
+    // markModified ensures Mongoose persists Mixed fields even if they look
+    // identical to the default value
+    doc.markModified("fares");
+    doc.markModified("coords");
+
+    const place = await doc.save();
     res.status(201).json({ status: "success", place });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
-// PUT update fares of a place by ID
+// PUT update a place by ID
 // PUT /api/admin/places/:id
-// Body: { fares: { route, route_label, distance_km, emergency_provisional_php, tiers: {...} }, distance, coords }
+// Body: { fares: {...}, distance, coords }
 router.put("/places/:id", async (req, res) => {
   try {
     const { fares, distance, coords } = req.body;
 
-    const update = {};
-    if (fares    !== undefined) update.fares    = fares;
-    if (distance !== undefined) update.distance = distance;
-    if (coords   !== undefined) update.coords   = coords;
-
-    const updated = await Place.findByIdAndUpdate(
-      req.params.id,
-      { $set: update },
-      { new: true }
-    );
-    if (!updated) {
+    // ── Find the document first ───────────────────────────────────────────────
+    const doc = await Place.findById(req.params.id);
+    if (!doc) {
       return res.status(404).json({ status: "error", message: "Place not found" });
     }
+
+    // ── Update fares (Mixed field) ────────────────────────────────────────────
+    // Assign directly and markModified so Mongoose knows the Mixed field changed.
+    if (fares !== undefined) {
+      doc.fares = fares;
+      doc.markModified("fares");
+    }
+
+    // ── Update distance ───────────────────────────────────────────────────────
+    if (distance !== undefined) {
+      doc.distance = distance;
+    }
+
+    // ── Update coords — normalise to [lng, lat] array ─────────────────────────
+    if (coords !== undefined) {
+      if (coords === null) {
+        doc.coords = null;
+      } else {
+        let coordsArray = null;
+        if (Array.isArray(coords) && coords.length >= 2) {
+          coordsArray = [parseFloat(coords[0]), parseFloat(coords[1])];
+        } else if (coords?.coordinates?.length >= 2) {
+          coordsArray = [parseFloat(coords.coordinates[0]), parseFloat(coords.coordinates[1])];
+        }
+        doc.coords = (coordsArray && !isNaN(coordsArray[0]) && !isNaN(coordsArray[1]))
+          ? coordsArray
+          : null;
+      }
+      doc.markModified("coords");
+    }
+
+    const updated = await doc.save();
     res.json({ status: "success", place: updated });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -102,7 +160,6 @@ router.delete("/places/:id", async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS — ACTIVE GASOLINE TIER
-// Stored in MongoDB Atlas → fareDB → settings collection
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET active tier
@@ -112,7 +169,7 @@ router.get("/settings/active-tier", async (req, res) => {
     const doc = await Setting.findOne({ key: "activeTier" });
     return res.json({
       status:     "success",
-      activeTier: doc ? doc.value : "50-59", // updated default
+      activeTier: doc ? doc.value : "50-59",
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -143,7 +200,6 @@ router.put("/settings/active-tier", async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS — ADMIN GMAIL
-// First Gmail to sign in becomes the permanent admin
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET registered admin Gmail
@@ -170,7 +226,6 @@ router.post("/settings/admin-gmail", async (req, res) => {
       return res.status(400).json({ status: "error", message: "Invalid Gmail address." });
     }
 
-    // Only save if no admin Gmail has been set yet (first-time only)
     const existing = await Setting.findOne({ key: "adminGmail" });
     if (existing) {
       return res.status(403).json({ status: "error", message: "Admin Gmail already registered." });
