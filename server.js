@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 
 const placesRoutes      = require("./routes/places");
 const adminPlacesRoutes = require("./routes/adminPlaces");
+const fareRoutes        = require("./routes/fare");       // ← NEW
 
 const app = express();
 
@@ -27,6 +28,11 @@ app.use("/api/places", placesRoutes);
 //   GET    /api/admin/settings/active-tier
 //   PUT    /api/admin/settings/active-tier
 app.use("/api/admin", adminPlacesRoutes);
+
+// Fare calculation — moved from frontend to backend
+//   POST /api/fare/calculate          { origin, destination, passengerType }
+//   GET  /api/fare/passenger-types    returns the passenger-type lookup table
+app.use("/api/fare", fareRoutes);        // ← NEW
 
 app.get("/", (req, res) => res.send("✅ Server is running!"));
 
