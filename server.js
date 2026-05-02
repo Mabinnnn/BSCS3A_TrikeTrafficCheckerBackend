@@ -8,7 +8,7 @@ import connectDB from "./config/db.js";
 import placesRoutes from "./routes/places.js";
 import adminPlacesRoutes from "./routes/adminPlaces.js"; // FIXED
 import faresRoutes from "./routes/fares.js";
-import adminRoutes from "./routes/adminRoutes.js";
+import adminRoutes from "./routes/adminPlaces.js";
 
 dotenv.config();
 connectDB();
