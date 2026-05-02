@@ -4,9 +4,9 @@ import dotenv from "dotenv";
 
 import connectDB from "./config/db.js";
 
-// ROUTES
+// ✅ CORRECT ROUTES
 import placesRoutes from "./routes/places.js";
-import adminPlacesRoutes from "./routes/adminRoutes.js";
+import adminPlacesRoutes from "./routes/adminPlaces.js"; // FIXED
 import faresRoutes from "./routes/fares.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
@@ -17,7 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ROUTES
+// ✅ ROUTES
 app.use("/api/places", placesRoutes);
 app.use("/api/admin/places", adminPlacesRoutes);
 app.use("/api/fares", faresRoutes);
