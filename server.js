@@ -21,6 +21,7 @@ app.use(express.json());
 app.use("/api/places", placesRoutes);
 app.use("/api/admin/places", adminPlacesRoutes);
 app.use("/api/fares", faresRoutes);
+app.use("/api/fare",  faresRoutes);
 app.use("/api/admin/routes", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
