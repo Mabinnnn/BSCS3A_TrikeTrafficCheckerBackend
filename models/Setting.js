@@ -1,7 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-// Generic key-value settings collection in MongoDB Atlas
-// Used to persist app-wide config like the active gasoline tier
 const settingSchema = new mongoose.Schema(
   {
     key:   { type: String, required: true, unique: true },
@@ -10,4 +8,4 @@ const settingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Setting", settingSchema);
+export default mongoose.model("Setting", settingSchema);
