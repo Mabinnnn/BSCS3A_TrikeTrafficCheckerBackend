@@ -5,7 +5,7 @@ import Setting from "../models/Setting.js";
 
 const router = express.Router();
 
-// GET /api/fares?route_no=1  (existing)
+// GET /api/fares?route_no=1
 router.get("/", async (req, res) => {
   try {
     const { route_no } = req.query;
@@ -21,10 +21,10 @@ router.get("/", async (req, res) => {
 router.get("/passenger-types", (req, res) => {
   res.json({
     passengerTypes: [
-      { key: "regular",  label: "Regular" },
-      { key: "student",  label: "Student" },
-      { key: "pwd",      label: "PWD" },
-      { key: "senior",   label: "Senior Citizen" },
+      { key: "regular", label: "Regular" },
+      { key: "student", label: "Student" },
+      { key: "pwd",     label: "PWD" },
+      { key: "senior",  label: "Senior Citizen" },
     ],
   });
 });
@@ -81,15 +81,14 @@ router.post("/calculate", async (req, res) => {
     const setting = await Setting.findOne({ key: "activeTier" });
     const activeTier = setting?.value ?? "50-59";
 
-    // Pull fare from destination's fares.tiers map
-    const tierFares = destPlace.fares?.tiers?.get(activeTier) ?? destPlace.fares?.tiers?.[activeTier];
+    // Tiers values are plain numbers e.g. { "50-59": 12, "60-69": 14 }
+    const baseFare = destPlace.fares?.tiers?.[activeTier];
 
-    if (!tierFares)
+    if (baseFare == null)
       return res.status(404).json({ status: "error", message: `No fare data for tier: ${activeTier}` });
 
     const discountMap = { regular: 1, student: 0.8, pwd: 0.8, senior: 0.8 };
     const discount = discountMap[passengerType] ?? 1;
-    const baseFare = tierFares.base ?? 0;
     const finalFare = +(baseFare * discount).toFixed(2);
 
     res.json({
