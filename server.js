@@ -1,40 +1,30 @@
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const express   = require("express");
-const cors      = require("cors");
-const connectDB = require("./config/db");
+import connectDB from "./config/db.js";
 
-const placesRoutes      = require("./routes/places");
-const adminPlacesRoutes = require("./routes/adminPlaces");
-const fareRoutes        = require("./routes/fare");       // ← NEW
+// ROUTES
+import placesRoutes from "./routes/places.js";
+import adminPlacesRoutes from "./routes/adminRoutes.js";
+import faresRoutes from "./routes/fares.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
-const app = express();
-
+dotenv.config();
 connectDB();
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Public route — used by Checkerpage to load all places
+// ROUTES
 app.use("/api/places", placesRoutes);
-
-// Admin routes — ALL admin endpoints are now under /api/admin
-// This covers:
-//   POST   /api/admin/login
-//   GET    /api/admin/places
-//   POST   /api/admin/places
-//   PUT    /api/admin/places/:id
-//   DELETE /api/admin/places/:id
-//   GET    /api/admin/settings/active-tier
-//   PUT    /api/admin/settings/active-tier
-app.use("/api/admin", adminPlacesRoutes);
-
-// Fare calculation — moved from frontend to backend
-//   POST /api/fare/calculate          { origin, destination, passengerType }
-//   GET  /api/fare/passenger-types    returns the passenger-type lookup table
-app.use("/api/fare", fareRoutes);        // ← NEW
-
-app.get("/", (req, res) => res.send("✅ Server is running!"));
+app.use("/api/admin/places", adminPlacesRoutes);
+app.use("/api/fares", faresRoutes);
+app.use("/api/admin/routes", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
