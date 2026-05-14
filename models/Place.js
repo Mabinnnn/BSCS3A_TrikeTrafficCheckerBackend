@@ -1,50 +1,38 @@
 const mongoose = require("mongoose");
 
-// ── admins collection in fareDB ───────────────────────────────────────────────
-// Each document represents one authorized admin Gmail account.
-// Add / remove documents in MongoDB Atlas to grant or revoke admin access.
-// ─────────────────────────────────────────────────────────────────────────────
-const AdminSchema = new mongoose.Schema({
-  email: {
-    type:     String,
-    required: true,
-    unique:   true,
-    lowercase: true,
-    trim:     true,
+// ── fares is stored as a free-form Mixed object so that:
+//   1. Hyphenated tier keys like "50-59", "60-69" are never stripped by Mongoose
+//   2. Any future shape changes don't require a schema migration
+// The frontend / admin always sends the full fares object; Mongoose stores it as-is.
+const placeSchema = new mongoose.Schema(
+  {
+    name: {
+      type:     String,
+      required: true,
+      trim:     true,
+    },
+    // Mixed accepts both [lng,lat] array AND GeoJSON {type, coordinates}
+    coords: {
+      type:    mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    category: {
+      type:    String,
+      default: "barangay",
+    },
+    distance: {
+      type:    String,
+      default: null,
+    },
+    // Mixed so that fares.tiers keys ("50-59", "60-69", …) are stored verbatim
+    fares: {
+      type:    mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
-  addedBy: {
-    type:    String,
-    default: "system",
-  },
-  createdAt: {
-    type:    Date,
-    default: Date.now,
-  },
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model("Admin", AdminSchema, "admins");
-const mongoose = require("mongoose");
-
-// ── admins collection in fareDB ───────────────────────────────────────────────
-// Each document represents one authorized admin Gmail account.
-// Add / remove documents in MongoDB Atlas to grant or revoke admin access.
-// ─────────────────────────────────────────────────────────────────────────────
-const AdminSchema = new mongoose.Schema({
-  email: {
-    type:     String,
-    required: true,
-    unique:   true,
-    lowercase: true,
-    trim:     true,
-  },
-  addedBy: {
-    type:    String,
-    default: "system",
-  },
-  createdAt: {
-    type:    Date,
-    default: Date.now,
-  },
-});
-
-module.exports = mongoose.model("Admin", AdminSchema, "admins");
+module.exports = mongoose.models.Place || mongoose.model("Place", placeSchema);
