@@ -18,7 +18,7 @@ const connectDB = require("./config/db");
 
 const placesRoutes      = require("./routes/places");
 const adminPlacesRoutes = require("./routes/adminPlaces");
-const fareRoutes        = require("./routes/fare");
+const fareRoutes        = require("./routes/fares");
 
 const app = express();
 
