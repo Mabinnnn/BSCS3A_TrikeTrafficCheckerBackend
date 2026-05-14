@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const routeSchema = new mongoose.Schema({
   routes: [
@@ -12,7 +12,4 @@ const routeSchema = new mongoose.Schema({
   ]
 });
 
-const Route =
-  mongoose.models.Route || mongoose.model("Route", routeSchema);
-
-export default Route;
+module.exports = mongoose.model("Route", routeSchema);
